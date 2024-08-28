@@ -1,0 +1,170 @@
+networks:
+  redisnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.0/16
+  # redisnet_pub:
+  #   external: true
+  #   name: host
+
+volumes:
+  redisinsight_data: {}
+  redis_1_data: {}
+  redis_2_data: {}
+  redis_3_data: {}
+  redis_4_data: {}
+  redis_5_data: {}
+  redis_6_data: {}
+
+services:
+  redisinsight:
+    image: 'redislabs/redisinsight:latest'
+    ports:
+      # - '127.0.0.1:8001:8001'
+      - "5540:5540"
+    # environment:
+    #   - REDIS_URI=redis://redis_1:6379
+    networks:
+      redisnet:
+        ipv4_address: 10.0.0.2
+    volumes:
+      - redisinsight_data:/data
+
+  # 目前Redis-cluster-proxy仍处于非稳定版本 官方不建议用于生产环境
+  redis_proxy:
+    container_name: redis_proxy
+    build:
+      context: .
+    # Expose to inner network
+    expose:
+      - 7777
+    # Expose to outer network
+    ports:
+      - "7777:7777"
+    networks:
+      redisnet:
+        ipv4_address: 10.0.0.3
+    command: 'redis-cluster-proxy 10.0.0.11:6379 10.0.0.12:6379 10.0.0.13:6379 10.0.0.14:6379 10.0.0.15:6379 10.0.0.16:6379'
+    depends_on:
+      - redis_cluster
+
+  redis_cluster:
+    image: redis:latest
+    command: redis-cli -p 6379 --cluster create 10.0.0.11:6379 10.0.0.12:6379 10.0.0.13:6379 10.0.0.14:6379 10.0.0.15:6379 10.0.0.16:6379 --cluster-replicas 1 --cluster-yes
+    depends_on:
+      - redis_1
+      - redis_2
+      - redis_3
+      - redis_4
+      - redis_5
+      - redis_6
+    networks:
+      redisnet:
+        ipv4_address: 10.0.0.4
+
+  redis_1:
+    image: redis:latest
+    entrypoint: [ "/bin/bash", "/start.sh" ]
+    # command: sh -c 'tail -f /dev/null'
+    volumes:
+      - ./redis/redis.conf:/etc/redis/redis.conf.template
+      - ./redis/start.sh:/start.sh
+      - redis_1_data:/data
+    environment:
+      X_REDIS_PORT: 6379
+      # ALLOW_EMPTY_PASSWORD: yes
+    networks:
+      redisnet:
+        ipv4_address: 10.0.0.11
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
+    # ports:
+    #   - 6379:6379
+    expose:
+      - 6379
+
+  redis_2:
+    image: redis:latest
+    entrypoint: [ "/bin/bash", "/start.sh" ]
+    volumes:
+      - ./redis/redis.conf:/etc/redis/redis.conf.template
+      - ./redis/start.sh:/start.sh
+      - redis_2_data:/data
+    environment:
+      X_REDIS_PORT: 6379
+    networks:
+      redisnet:
+        ipv4_address: 10.0.0.12
+    # ports:
+    #   - 6379:6379
+    expose:
+      - 6379
+
+  redis_3:
+    image: redis:latest
+    entrypoint: [ "/bin/bash", "/start.sh" ]
+    volumes:
+      - ./redis/redis.conf:/etc/redis/redis.conf.template
+      - ./redis/start.sh:/start.sh
+      - redis_3_data:/data
+    environment:
+      X_REDIS_PORT: 6379
+    networks:
+      redisnet:
+        ipv4_address: 10.0.0.13
+    # ports:
+    #   - 6379:6379
+    expose:
+      - 6379
+
+  redis_4:
+    image: redis:latest
+    entrypoint: [ "/bin/bash", "/start.sh" ]
+    volumes:
+      - ./redis/redis.conf:/etc/redis/redis.conf.template
+      - ./redis/start.sh:/start.sh
+      - redis_4_data:/data
+    environment:
+      X_REDIS_PORT: 6379
+    networks:
+      redisnet:
+        ipv4_address: 10.0.0.14
+    # ports:
+    #   - 6379:6379
+    expose:
+      - 6379
+
+  redis_5:
+    image: redis:latest
+    entrypoint: [ "/bin/bash", "/start.sh" ]
+    volumes:
+      - ./redis/redis.conf:/etc/redis/redis.conf.template:ro
+      - ./redis/start.sh:/start.sh
+      - redis_5_data:/data
+    environment:
+      X_REDIS_PORT: 6379
+    networks:
+      redisnet:
+        ipv4_address: 10.0.0.15
+    # ports:
+    #   - 6379:6379
+    expose:
+      - 6379
+
+  redis_6:
+    image: redis:latest
+    entrypoint: [ "/bin/bash", "/start.sh" ]
+    volumes:
+      - ./redis/redis.conf:/etc/redis/redis.conf.template
+      - ./redis/start.sh:/start.sh
+      - redis_6_data:/data
+    environment:
+      X_REDIS_PORT: 6379
+    networks:
+      redisnet:
+        ipv4_address: 10.0.0.16
+    # ports:
+    #   - 6379:6379
+    expose:
+      - 6379
