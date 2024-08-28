@@ -1,0 +1,59 @@
+networks:
+  redisnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.0.0/16
+
+volumes:
+  redisinsight_data: {}
+  redis_data: {}
+
+services:
+  redisinsight:
+    image: 'redislabs/redisinsight:latest'
+    ports:
+      # - '127.0.0.1:8001:8001'
+      - "5540:5540"
+    environment:
+      - REDIS_URI=redis://redis:6379
+    networks:
+      redisnet:
+        ipv4_address: 10.0.0.2
+    volumes:
+      - redisinsight_data:/data
+
+  # redis-commander:
+  #   image: ghcr.io/joeferner/redis-commander:latest
+  #   restart: always
+  #   environment:
+  #     - REDIS_HOST=redis
+  #     - REDIS_PASSWORD=${REDIS_DEFAULT_PASS:-admin}
+  #     # https://github.com/joeferner/redis-commander/issues/444#issuecomment-937902732
+  #     # - REDIS_HOSTS=local:broker:6379
+  #   ports:
+  #     - "${REDIS_MANAGEMENT_PORT:-8081}:8081"
+  #   networks:
+  #     redisnet:
+  #       ipv4_address: 10.0.0.3
+  #   # user: redis
+  #   depends_on:
+  #     - redis
+
+  redis:
+    image: redis:latest
+    # command: sh -c 'tail -f /dev/null'
+    command: >
+      --requirepass ${REDIS_DEFAULT_PASS:-admin}
+    volumes:
+      - ./redis/redis.conf:/etc/redis/redis.conf
+      - redis_data:/data
+    # environment:
+    #   ALLOW_EMPTY_PASSWORD: yes
+    networks:
+      redisnet:
+        ipv4_address: 10.0.0.11
+    ports:
+      - 6379:6379
+    expose:
+      - 6379
