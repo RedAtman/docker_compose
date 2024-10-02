@@ -1,0 +1,106 @@
+networks:
+  etcd:
+    driver: bridge
+
+services:
+  etcd:
+    # hostname: etcd
+    # image: bitnami/etcd:3.5.16
+    image: quay.io/coreos/etcd:v3.5.16
+    # image: quay.io/coreos/etcd:v3.3.1
+    # volumes:
+    #   - ./etcd/data:/bitnami/etcd/data
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://0.0.0.0:2379
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+      # - ETCD_LISTEN_PEER_URLS=https://0.0.0.0:2380
+      # - ETCDCTL_API=2
+      # - ETCD_NAME=node1
+      # - ETCD_ROOT_PASSWORD=admin
+      # - ETCD_CLIENT_CERT_AUTH=true
+      # - ETCD_PEER_CLIENT_CERT_AUTH=true
+      # - ETCD_HEARTBEAT_INTERVAL=1000
+      # - ETCD_ELECTION_TIMEOUT=10000
+      # - ETCD_INITIAL_ADVERTISE_PEER_URLS=https://10.0.2.15:42380
+      # - ETCD_INITIAL_CLUSTER_TOKEN=etcd_cluster
+      # - ETCD_INITIAL_CLUSTER=node1=https://10.0.2.15:42380,node2=https://10.0.2.15:52380,node3=https://10.0.2.15:62380
+      # - ETCD_INITIAL_CLUSTER_STATE=new
+      # - ETCD_TRUSTED_CA_FILE=/opt/bitnami/etcd/conf/ca.pem
+      # - ETCD_KEY_FILE=/opt/bitnami/etcd/conf/server-key.pem
+      # - ETCD_CERT_FILE=/opt/bitnami/etcd/conf/server.pem
+      # - ETCD_PEER_TRUSTED_CA_FILE=/opt/bitnami/etcd/conf/ca.pem
+      # - ETCD_PEER_KEY_FILE=/opt/bitnami/etcd/conf/peer-key.pem
+      # - ETCD_PEER_CERT_FILE=/opt/bitnami/etcd/conf/peer.pem
+      # expose:
+      #   - 2379
+      #   - 2380
+    ports:
+      - 2379:2379
+      # - 2380:2380
+    networks:
+      - etcd
+
+  etcdkeeper:
+    hostname: etcdkeeper
+    # image: lykart/etcdkeeper:latest
+    # image: evildecay/etcdkeeper:latest
+    image: bitstreams/etcdkeeper:v1.0.0 # ports: - 8088:8088
+    environment:
+      - ETCD_HOSTS=http://etcd:2379
+      # - ETCD_SERVERS=http://etcd:2379
+      # - TLS_ENABLE=-usetls
+      # - AUTH_ENABLE=-auth
+      # - CACERT=/opt/etcdkeeper/tls/ca.pem
+      # - CERT=/opt/etcdkeeper/tls/client.pem
+      # - KEY=/opt/etcdkeeper/tls/client-key.pem
+    ports:
+      # - 8080:8080
+      - 8088:8088
+    depends_on:
+      - etcd
+    networks:
+      - etcd
+
+# Just as an example, not as a formally deployed configuration.
+# Because the actual production may deploy the etcd cluster, there is no cluster related to etcd.
+
+# services:
+#   etcd:
+#     image: quay.io/coreos/etcd:v3.3
+#     container_name: etcd
+#     command: /usr/local/bin/etcd
+#     restart: always
+#     networks:
+#       - etcd
+#     ports:
+#       # 外部客户端通信 etcd​​3.0.4之前的版本使用 4001
+#       - "2379:2379"
+#       # etcd服务中成员间的通信端口 etcd​​3.0.4之前的版本使用 7001
+#       - "2380:2380"
+#     environment:
+#       ETCDCTL_API: 2
+#       ETCD_LOGGER: capnslog
+#       # etcd数据的存储目录
+#       ETCD_DATA_DIR: /etcd-data
+#       ETCD_NAME: node1
+#       # 通知集群中其他成员本节点的peer urls，一定要保证从其他member能可访问该地址。
+#       ETCD_INITIAL_ADVERTISE_PEER_URLS: http://0.0.0.0:2380
+#       # 监听的用于节点之间通信的url，可建通多个，集群内部将通过这些url进行数据交互（选举、数据同步），用于监听其他member发送信息的地址
+#       ETCD_LISTEN_PEER_URLS: http://0.0.0.0:2380
+#       # 监听的用于客户端通信的的urls，可以是多个，用于监听etcd客户端发送信息的地址
+#       ETCD_LISTEN_CLIENT_URLS: http://0.0.0.0:2379
+#       # 通知集群中其他成员本节点的client url，一定要保证从客户侧能可访问该地址。
+#       ETCD_ADVERTISE_CLIENT_URLS: http://0.0.0.0:2379
+#       # #广播给集群内其他成员访问的URL
+#       ETCD_INITIAL_CLUSTER: node1=http://0.0.0.0:2380
+
+#  etcdkeeper:
+#    build: .
+#    container_name: etcdkeeper
+#    environment:
+#      HOST: 0.0.0.0
+#    ports:
+#    - 12000:8080
+#    depends_on:
+#    - etcd
